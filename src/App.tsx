@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
+import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
 import Database from "tauri-plugin-sql-api";
 import "./App.css";
 
@@ -11,9 +12,22 @@ function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
+  useEffect(() => {
+    // global shortcut
+    (async () => {
+      await unregisterAll();
+      await register('CommandOrControl+Shift+C', async () => {
+        console.log('Shortcut triggered');
+        await greet();
+      });
+    })();
+  }, []);
+
   async function greet() {
     await db.execute( "INSERT into afk DEFAULT VALUES");
-    console.log("insert row")
+    console.log("insert row");
+    const res = await db.select("SELECT * FROM afk");
+    console.log(res);
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     setGreetMsg(await invoke("greet", { name }));
   }
