@@ -1,13 +1,19 @@
 import { useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
+import Database from "tauri-plugin-sql-api";
 import "./App.css";
+
+// sqlite. The path is relative to `tauri::api::path::BaseDirectory::App`.
+const db = await Database.load("sqlite:afk-track.db");
 
 function App() {
   const [greetMsg, setGreetMsg] = useState("");
   const [name, setName] = useState("");
 
   async function greet() {
+    await db.execute( "INSERT into afk DEFAULT VALUES");
+    console.log("insert row")
     // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
     setGreetMsg(await invoke("greet", { name }));
   }
