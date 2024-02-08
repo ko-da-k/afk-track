@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import reactLogo from "./assets/react.svg";
 import { invoke } from "@tauri-apps/api/tauri";
 import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
@@ -8,104 +8,119 @@ import "./App.css";
 // sqlite. The path is relative to `tauri::api::path::BaseDirectory::App`.
 const db = await Database.load("sqlite:afk-track.db");
 
-type AfkTable = {
-  id: number,
-  created_at: string,
-  updated_at: string,
-}
-
 // Away from Keyboard
 type Afk = {
   id: number,
-  createdAt: Date,
-  updatedAt: Date,
+  from: Date,
+  to?: Date,
 }
 
+const totalMin = (afk: Afk): number | undefined => {
+  if (!afk.to) {
+    return undefined
+  }
+  return Math.floor((afk.to.getTime() - afk.from.getTime()) / (1000 * 60))
+}
+
+const ymdStr = (offsetDay: number = 0) : string => {
+    const now = new Date(Date.now());
+    now.setDate(now.getDate() + offsetDay)
+    const yyyy = now.getFullYear();
+    const mm = (now.getMonth() + 1).toString().padStart(2, '0');
+    const dd = now.getDate().toString().padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [isAfk, setIsAfk] = useState<boolean>(false);
   const [afks, setAfks] = useState<Afk[]>([]);
+  const currentId = useRef<number>(0);
 
   useEffect(() => {
-    // global shortcut
+    if (loading) {
+      return;
+    }
+    (async () => {
+      const res = await currentAfks();
+      setAfks(res);
+      currentId.current = (Math.max(...res.map(item => item.id)));
+    })();
+    setLoading(true);
+  }, [loading]);
+
+  useEffect(() => {
     (async () => {
       await unregisterAll();
       await register('CommandOrControl+Shift+C', async () => {
-        console.log('Shortcut triggered');
-        await greet();
+        if (isAfk) {
+          await bak();
+        } else {
+          await afk();
+        };
       });
+      const res = await currentAfks();
+      setAfks(res);
+      currentId.current = (Math.max(...res.map(item => item.id)));
     })();
-  }, []);
+  }, [isAfk])
 
-  async function greet() {
-    await db.execute( "INSERT into afk DEFAULT VALUES");
-    console.log("insert row");
-    const res: AfkTable[] = await db.select(`
+  const currentAfks = async () => {
+    type Table = {
+      id: number,
+      afk_at: string,
+      bak_at?: string,
+    }
+    const data: Table[] = await db.select(`
       SELECT 
-        id, 
-        datetime(created_at, 'localtime') as created_at, 
-        datetime(updated_at, 'localtime') as updated_at
-      FROM afk
+        a.id, 
+        datetime(a.created_at, 'localtime') as afk_at, 
+        datetime(b.created_at, 'localtime') as bak_at
+      FROM afk as a
+      LEFT JOIN bak as b
+      ON a.id = b.afk_id
+      WHERE datetime(a.created_at, 'localtime') between '${ymdStr()}' and '${ymdStr(1)}'
     `);
-    console.log(res)
-    setAfks(res.map((item) => ({
+    const res = data.map((item) => ({
       id: item.id,
-      createdAt: new Date(item.created_at),
-      updatedAt: new Date(item.updated_at)
-    })));
-    console.log(afks);
-    // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
-    setGreetMsg(await invoke("greet", { name }));
+      from: new Date(item.afk_at),
+      to: item.bak_at ? new Date(item.bak_at) : undefined,
+    }));
+    return res;
   }
+  
+  // away from keyboard
+  const afk = async () => {
+    await db.execute("INSERT into afk DEFAULT VALUES");
+    setIsAfk((current) => !current);
+  };
+
+  // back at keyboard
+  const bak = async () => {
+    await db.execute( "INSERT into bak (afk_id) VALUES ($1)", [currentId.current]);
+    setIsAfk((current) => !current);
+  };
 
   return (
     <div className="container">
-      <h1>Welcome to Tauri!</h1>
-
-      <div className="row">
-        <a href="https://vitejs.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://reactjs.org" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-
-      <p>{greetMsg}</p>
+      <p>{isAfk ? "離席中" : "在席中"}</p>
+      <p>{currentId.current}</p>
       <table>
         <thead>
           <tr>
             <th>ID</th>
-            <th>CreatedAt</th>
-            <th>UpdatedAt</th>
+            <th>From</th>
+            <th>To</th>
+            <th>Minutes</th>
           </tr>
         </thead>
         <tbody>
           {afks.map((item) => (
             <tr key={item.id}>
               <td>{item.id}</td>
-              <td>{item.createdAt.toLocaleString()}</td>
-              <td>{item.updatedAt.toLocaleString()}</td>
+              <td>{item.from.toLocaleString()}</td>
+              <td>{item.to?.toLocaleString()}</td>
+              <td>{totalMin(item)}</td>
             </tr>
           ))}
         </tbody>
