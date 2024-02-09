@@ -43,7 +43,7 @@ fn main() {
         })
         .plugin(
             tauri_plugin_sql::Builder::default()
-                // macos location: ~/~/Library/Application\ Support/<tauri.bundle.identifier>/<dbname>.db
+                // macos location: ~/Library/Application\ Support/<tauri.bundle.identifier>/<dbname>.db
                 .add_migrations("sqlite:afk-track.db", migrations)
                 .build(),
         )
