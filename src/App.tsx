@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/tauri";
 import { register, unregisterAll } from '@tauri-apps/api/globalShortcut';
 import Database from "tauri-plugin-sql-api";
 import "./App.css";
+import { updateStatus, updatePresence } from "./slack";
 
 // sqlite. The path is relative to `tauri::api::path::BaseDirectory::App`.
 const db = await Database.load("sqlite:afk-track.db");
@@ -93,12 +92,16 @@ function App() {
   const afk = async () => {
     await db.execute("INSERT into afk DEFAULT VALUES");
     setIsAfk((current) => !current);
+    updateStatus(true);
+    updatePresence(true);
   };
 
   // back at keyboard
   const bak = async () => {
     await db.execute( "INSERT into bak (afk_id) VALUES ($1)", [currentId.current]);
     setIsAfk((current) => !current);
+    updateStatus(false);
+    updatePresence(false);
   };
 
   return (
