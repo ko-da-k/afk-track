@@ -16,7 +16,7 @@ https://tauri.app/v1/guides/getting-started/prerequisites#installing
 ## Installation
 
 1. create `.env` file and replace `VITE_SLACK_USER_TOKEN`
-  - User Token Scopes required following permissions.
+  - User Token Scopes requires following permissions.
     - `users.profile.write`
     - `users.write`
 2. run `npm install`
