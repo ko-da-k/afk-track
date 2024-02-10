@@ -1,7 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use tauri::Manager;
 use tauri_plugin_sql::{Migration, MigrationKind};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
@@ -32,15 +31,15 @@ fn main() {
     }];
 
     tauri::Builder::default()
-        .setup(|app| {
-            #[cfg(debug_assertions)] // only include this code on debug builds
-            {
-            let window = app.get_window("main").unwrap();
-            window.open_devtools();
-            window.close_devtools();
-            }
-            Ok(())
-        })
+        // .setup(|app| {
+        //     #[cfg(debug_assertions)] // only include this code on debug builds
+        //     {
+        //     let window = app.get_window("main").unwrap();
+        //     window.open_devtools();
+        //     window.close_devtools();
+        //     }
+        //     Ok(())
+        // })
         .plugin(
             tauri_plugin_sql::Builder::default()
                 // macos location: ~/Library/Application\ Support/<tauri.bundle.identifier>/<dbname>.db
