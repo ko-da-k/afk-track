@@ -14,11 +14,18 @@ type Afk = {
   to?: Date,
 }
 
-const totalMin = (afk: Afk): number | undefined => {
+const diffMin = (afk: Afk): number | undefined => {
   if (!afk.to) {
     return undefined
   }
   return Math.floor((afk.to.getTime() - afk.from.getTime()) / (1000 * 60))
+}
+
+const totalMin = (afks: Afk[]): number => {
+  return afks.reduce((total, afk) => {
+    const minutes = diffMin(afk) || 0; // undefinedの場合は0で埋める
+    return total + minutes;
+  }, 0);
 }
 
 const ymdStr = (offsetDay: number = 0) : string => {
@@ -105,10 +112,27 @@ function App() {
   };
 
   return (
-    <div className="container">
-      <p>{isAfk ? "離席中" : "在席中"}</p>
-      <p>{currentId.current}</p>
-      <table>
+    <div className="overflow-x-auto">
+      <div className="grid grid-cols-4 h-20">
+        <div className="flex items-center justify-end">
+          <button className="btn btn-circle">{`<`}</button>
+        </div>
+        <div className="col-span-2 flex items-center justify-center">
+          {ymdStr()}
+        </div>
+        <div className="flex items-center justify-start">
+          <button className="btn btn-circle">{`>`}</button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 h-20">
+        <div className="flex items-center justify-center">
+          <span className={`badge-lg ${isAfk ? 'bg-primary' : 'bg-secondary'}`}>{isAfk ? "離席中" : "在席中"}</span>
+        </div>
+        <div className="flex items-center justify-center">
+          <p>totalMin: {totalMin(afks)}</p>
+        </div>
+      </div>
+      <table className="table items-center justify-center">
         <thead>
           <tr>
             <th>ID</th>
@@ -123,7 +147,7 @@ function App() {
               <td>{item.id}</td>
               <td>{item.from.toLocaleString()}</td>
               <td>{item.to?.toLocaleString()}</td>
-              <td>{totalMin(item)}</td>
+              <td>{diffMin(item)}</td>
             </tr>
           ))}
         </tbody>
