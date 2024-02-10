@@ -58,7 +58,7 @@ function App() {
   useEffect(() => {
     (async () => {
       await unregisterAll();
-      await register('CommandOrControl+Shift+C', async () => {
+      await register('CommandOrControl+Shift+B', async () => {
         if (isAfk) {
           await bak();
         } else {
@@ -124,6 +124,13 @@ function App() {
           <button className="btn btn-circle">{`>`}</button>
         </div>
       </div>
+      <div className="divider divider-neutral">
+        <kbd className="kbd">⌘</kbd>
+        +
+        <kbd className="kbd">⇧</kbd>
+        +
+        <kbd className="kbd">B</kbd>
+      </div>
       <div className="grid grid-cols-2 h-20">
         <div className="flex items-center justify-center">
           <span className={`badge-lg ${isAfk ? 'bg-primary' : 'bg-secondary'}`}>{isAfk ? "離席中" : "在席中"}</span>
@@ -132,7 +139,8 @@ function App() {
           <p>totalMin: {totalMin(afks)}</p>
         </div>
       </div>
-      <table className="table items-center justify-center">
+      
+     <table className="table items-center justify-center">
         <thead>
           <tr>
             <th>ID</th>
