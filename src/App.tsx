@@ -41,6 +41,7 @@ function App() {
   const [loading, setLoading] = useState<boolean>(false);
   const [isAfk, setIsAfk] = useState<boolean>(false);
   const [afks, setAfks] = useState<Afk[]>([]);
+  const [dateOffset, setDateOffset] = useState<number>(0);
   const currentId = useRef<number>(0);
 
   useEffect(() => {
@@ -69,7 +70,7 @@ function App() {
       setAfks(res);
       currentId.current = (Math.max(...res.map(item => item.id)));
     })();
-  }, [isAfk])
+  }, [isAfk, dateOffset])
 
   const currentAfks = async () => {
     type Table = {
@@ -85,7 +86,7 @@ function App() {
       FROM afk as a
       LEFT JOIN bak as b
       ON a.id = b.afk_id
-      WHERE datetime(a.created_at, 'localtime') between '${ymdStr()}' and '${ymdStr(1)}'
+      WHERE datetime(a.created_at, 'localtime') between '${ymdStr(dateOffset)}' and '${ymdStr(dateOffset + 1)}'
     `);
     const res = data.map((item) => ({
       id: item.id,
@@ -111,17 +112,22 @@ function App() {
     updatePresence(false);
   };
 
+  const decOffset = () => setDateOffset((current) => current-1);
+  const incOffset = () => setDateOffset((current) => current+1);
+  const resetOffset = () => setDateOffset(0);
+
   return (
     <div className="overflow-x-auto">
       <div className="grid grid-cols-4 h-20">
         <div className="flex items-center justify-end">
-          <button className="btn btn-circle">{`<`}</button>
+          <button className="btn btn-circle" onClick={decOffset}>{`<`}</button>
         </div>
         <div className="col-span-2 flex items-center justify-center">
-          {ymdStr()}
+          {ymdStr(dateOffset)}
+          {dateOffset !== 0 ? <button className="btn btn-sm mx-2" onClick={resetOffset}>reset</button> : null}
         </div>
         <div className="flex items-center justify-start">
-          <button className="btn btn-circle">{`>`}</button>
+          <button className="btn btn-circle" onClick={incOffset}>{`>`}</button>
         </div>
       </div>
       <div className="divider divider-neutral">
